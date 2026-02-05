@@ -1,3 +1,27 @@
+// IndexedDB setup
+let db;
+const request = indexedDB.open('StudentFeeDB', 1);
+
+request.onerror = function(event) {
+    console.error('Database error:', event.target.error);
+};
+
+request.onsuccess = function(event) {
+    db = event.target.result;
+    loadDashboard();
+    loadStudents();
+};
+
+request.onupgradeneeded = function(event) {
+    db = event.target.result;
+    if (!db.objectStoreNames.contains('students')) {
+        db.createObjectStore('students', { keyPath: 'id', autoIncrement: true });
+    }
+    if (!db.objectStoreNames.contains('payments')) {
+        db.createObjectStore('payments', { keyPath: 'id', autoIncrement: true });
+    }
+};
+
 // Navigation
 document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -11,29 +35,20 @@ document.querySelectorAll('nav button').forEach(btn => {
 });
 
 // Add Student
-document.getElementById('student-form').addEventListener('submit', async function(e) {
+document.getElementById('student-form').addEventListener('submit', function(e) {
     e.preventDefault();
     const student = {
         name: document.getElementById('student-name').value,
         room: document.getElementById('room-no').value,
         lunchType: document.getElementById('lunch-type').value
     };
-    const response = await fetch('/.netlify/functions/addStudent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(student)
-    });
-    if (response.ok) {
-        alert('Student added!');
-        this.reset();
-        loadDashboard();
-    } else {
-        alert('Error adding student');
-    }
+    addStudent(student);
+    this.reset();
+    alert('Student added!');
 });
 
 // Add Payment
-document.getElementById('payment-form').addEventListener('submit', async function(e) {
+document.getElementById('payment-form').addEventListener('submit', function(e) {
     e.preventDefault();
     const payment = {
         studentId: parseInt(document.getElementById('student-select').value),
@@ -43,18 +58,9 @@ document.getElementById('payment-form').addEventListener('submit', async functio
         date: document.getElementById('payment-date').value,
         balance: parseFloat(document.getElementById('balance').value)
     };
-    const response = await fetch('/.netlify/functions/addPayment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payment)
-    });
-    if (response.ok) {
-        alert('Payment added!');
-        this.reset();
-        loadDashboard();
-    } else {
-        alert('Error adding payment');
-    }
+    addPayment(payment);
+    this.reset();
+    alert('Payment added!');
 });
 
 // Auto calculate balance
@@ -67,125 +73,158 @@ function calculateBalance() {
     document.getElementById('balance').value = (total - paid).toFixed(2);
 }
 
-// Load Students
-async function loadStudents() {
-    const response = await fetch('/.netlify/functions/getStudents');
-    const students = await response.json();
-    const ul = document.getElementById('student-ul');
-    ul.innerHTML = '';
-    students.forEach(student => {
-        const li = document.createElement('li');
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = `${student.name} - Room: ${student.room} - Lunch: ${student.lunch_type}`;
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', () => deleteStudent(student.id));
-        li.appendChild(nameSpan);
-        li.appendChild(deleteBtn);
-        ul.appendChild(li);
-    });
+// Functions
+function addStudent(student) {
+    const transaction = db.transaction(['students'], 'readwrite');
+    const store = transaction.objectStore('students');
+    store.add(student);
+    transaction.oncomplete = loadDashboard;
 }
 
-// Load Student Select
-async function loadStudentSelect() {
-    const response = await fetch('/.netlify/functions/getStudents');
-    const students = await response.json();
-    const select = document.getElementById('student-select');
-    select.innerHTML = '';
-    students.forEach(student => {
-        const option = document.createElement('option');
-        option.value = student.id;
-        option.textContent = student.name;
-        select.appendChild(option);
-    });
+function addPayment(payment) {
+    const transaction = db.transaction(['payments'], 'readwrite');
+    const store = transaction.objectStore('payments');
+    store.add(payment);
+    transaction.oncomplete = loadDashboard;
 }
 
-// Load History Student Select
-async function loadHistoryStudentSelect() {
-    const response = await fetch('/.netlify/functions/getStudents');
-    const students = await response.json();
-    const select = document.getElementById('history-student-select');
-    select.innerHTML = '<option value="">Select a student</option>';
-    students.forEach(student => {
-        const option = document.createElement('option');
-        option.value = student.id;
-        option.textContent = student.name;
-        select.appendChild(option);
-    });
-    select.addEventListener('change', loadPaymentHistory);
+function loadStudents() {
+    const transaction = db.transaction(['students'], 'readonly');
+    const store = transaction.objectStore('students');
+    const request = store.getAll();
+    request.onsuccess = function() {
+        const students = request.result;
+        const ul = document.getElementById('student-ul');
+        ul.innerHTML = '';
+        students.forEach(student => {
+            const li = document.createElement('li');
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = `${student.name} - Room: ${student.room} - Lunch: ${student.lunchType}`;
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.addEventListener('click', () => deleteStudent(student.id));
+            li.appendChild(nameSpan);
+            li.appendChild(deleteBtn);
+            ul.appendChild(li);
+        });
+    };
 }
 
-// Load Payment History
-async function loadPaymentHistory() {
-    const studentId = document.getElementById('history-student-select').value;
+function loadStudentSelect() {
+    const transaction = db.transaction(['students'], 'readonly');
+    const store = transaction.objectStore('students');
+    const request = store.getAll();
+    request.onsuccess = function() {
+        const students = request.result;
+        const select = document.getElementById('student-select');
+        select.innerHTML = '';
+        students.forEach(student => {
+            const option = document.createElement('option');
+            option.value = student.id;
+            option.textContent = student.name;
+            select.appendChild(option);
+        });
+    };
+}
+
+function loadHistoryStudentSelect() {
+    const transaction = db.transaction(['students'], 'readonly');
+    const store = transaction.objectStore('students');
+    const request = store.getAll();
+    request.onsuccess = function() {
+        const students = request.result;
+        const select = document.getElementById('history-student-select');
+        select.innerHTML = '<option value="">Select a student</option>';
+        students.forEach(student => {
+            const option = document.createElement('option');
+            option.value = student.id;
+            option.textContent = student.name;
+            select.appendChild(option);
+        });
+        select.addEventListener('change', loadPaymentHistory);
+    };
+}
+
+function loadPaymentHistory() {
+    const studentId = parseInt(document.getElementById('history-student-select').value);
     if (!studentId) {
         document.getElementById('history-ul').innerHTML = '';
         return;
     }
-    const response = await fetch(`/.netlify/functions/getPaymentsByStudent?studentId=${studentId}`);
-    const payments = await response.json();
-    const ul = document.getElementById('history-ul');
-    ul.innerHTML = '';
-    payments.forEach(payment => {
-        const li = document.createElement('li');
-        li.textContent = `Date: ${payment.date} | Total Fees: ₹${payment.total_fees.toFixed(2)} | Paid: ₹${payment.paid_amount.toFixed(2)} | Balance: ₹${payment.balance.toFixed(2)} | Mode: ${payment.payment_mode}`;
-        ul.appendChild(li);
-    });
-}
-
-// Load Pending Fees
-async function loadPendingFees() {
-    const studentsResponse = await fetch('/.netlify/functions/getStudents');
-    const students = await studentsResponse.json();
-    const paymentsResponse = await fetch('/.netlify/functions/getPayments');
-    const payments = await paymentsResponse.json();
-    const ul = document.getElementById('pending-ul');
-    ul.innerHTML = '';
-    const paymentsByStudent = {};
-    payments.forEach(payment => {
-        if (!paymentsByStudent[payment.student_id]) paymentsByStudent[payment.student_id] = [];
-        paymentsByStudent[payment.student_id].push(payment);
-    });
-    students.forEach(student => {
-        const studentPayments = paymentsByStudent[student.id] || [];
-        const totalBalance = studentPayments.reduce((sum, p) => sum + p.balance, 0);
-        if (totalBalance > 0) {
+    const transaction = db.transaction(['payments'], 'readonly');
+    const store = transaction.objectStore('payments');
+    const request = store.getAll();
+    request.onsuccess = function() {
+        const payments = request.result.filter(p => p.studentId === studentId);
+        const ul = document.getElementById('history-ul');
+        ul.innerHTML = '';
+        payments.forEach(payment => {
             const li = document.createElement('li');
-            li.textContent = `${student.name} - Pending: ₹${totalBalance.toFixed(2)}`;
+            li.textContent = `Date: ${payment.date} | Total Fees: ₹${payment.totalFees.toFixed(2)} | Paid: ₹${payment.paidAmount.toFixed(2)} | Balance: ₹${payment.balance.toFixed(2)} | Mode: ${payment.paymentMode}`;
             ul.appendChild(li);
-        }
-    });
+        });
+    };
 }
 
-// Delete Student
-async function deleteStudent(studentId) {
-    if (confirm('Are you sure you want to delete this student and all their payments?')) {
-        const response = await fetch(`/.netlify/functions/deleteStudent?id=${studentId}`, {
-            method: 'DELETE'
+function loadPendingFees() {
+    const transaction = db.transaction(['students', 'payments'], 'readonly');
+    const studentStore = transaction.objectStore('students');
+    const paymentStore = transaction.objectStore('payments');
+    const studentRequest = studentStore.getAll();
+    const paymentRequest = paymentStore.getAll();
+    transaction.oncomplete = function() {
+        const students = studentRequest.result;
+        const payments = paymentRequest.result;
+        const ul = document.getElementById('pending-ul');
+        ul.innerHTML = '';
+        students.forEach(student => {
+            const studentPayments = payments.filter(p => p.studentId === student.id);
+            const totalBalance = studentPayments.reduce((sum, p) => sum + p.balance, 0);
+            if (totalBalance > 0) {
+                const li = document.createElement('li');
+                li.textContent = `${student.name} - Pending: ₹${totalBalance.toFixed(2)}`;
+                ul.appendChild(li);
+            }
         });
-        if (response.ok) {
+    };
+}
+
+function deleteStudent(studentId) {
+    if (confirm('Are you sure you want to delete this student and all their payments?')) {
+        const transaction = db.transaction(['students', 'payments'], 'readwrite');
+        const studentStore = transaction.objectStore('students');
+        const paymentStore = transaction.objectStore('payments');
+        studentStore.delete(studentId);
+        const paymentRequest = paymentStore.getAll();
+        paymentRequest.onsuccess = function() {
+            const payments = paymentRequest.result;
+            payments.forEach(payment => {
+                if (payment.studentId === studentId) {
+                    paymentStore.delete(payment.id);
+                }
+            });
+        };
+        transaction.oncomplete = () => {
             loadStudents();
             loadDashboard();
             loadPendingFees();
-        } else {
-            alert('Error deleting student');
-        }
+        };
     }
 }
 
-// Load Dashboard
-async function loadDashboard() {
-    const studentsResponse = await fetch('/.netlify/functions/getStudents');
-    const students = await studentsResponse.json();
-    const paymentsResponse = await fetch('/.netlify/functions/getPayments');
-    const payments = await paymentsResponse.json();
-    document.getElementById('total-students').textContent = students.length;
-    document.getElementById('total-payments').textContent = payments.length;
-    let totalPending = 0;
-    payments.forEach(payment => {
-        totalPending += payment.balance;
-    });
-    document.getElementById('pending-balances').textContent = totalPending.toFixed(2);
+function loadDashboard() {
+    const transaction = db.transaction(['students', 'payments'], 'readonly');
+    const studentStore = transaction.objectStore('students');
+    const paymentStore = transaction.objectStore('payments');
+    const studentRequest = studentStore.count();
+    const paymentRequest = paymentStore.getAll();
+    transaction.oncomplete = function() {
+        document.getElementById('total-students').textContent = studentRequest.result;
+        const payments = paymentRequest.result;
+        document.getElementById('total-payments').textContent = payments.length;
+        const totalPending = payments.reduce((sum, p) => sum + p.balance, 0);
+        document.getElementById('pending-balances').textContent = totalPending.toFixed(2);
+    };
 }
 
 // Initial load
