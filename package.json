@@ -1,0 +1,24 @@
+{
+  "name": "new-folder",
+  "version": "1.0.0",
+  "description": "A simple web app to manage student fees using HTML, CSS, JavaScript, and IndexedDB for local storage.",
+  "main": "config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Darkriser69/Student-Fee-Manager.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Darkriser69/Student-Fee-Manager/issues"
+  },
+  "homepage": "https://github.com/Darkriser69/Student-Fee-Manager#readme",
+  "dependencies": {
+    "pg": "^8.18.0"
+  }
+}
