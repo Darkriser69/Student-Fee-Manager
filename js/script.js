@@ -23,15 +23,28 @@ async function initializeApp() {
 // Navigation setup
 function setupNavigationListeners() {
     document.querySelectorAll('nav button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-            document.getElementById(btn.id.replace('-btn', '')).classList.add('active');
-            if (btn.id === 'student-list-btn') loadStudents();
-            if (btn.id === 'pending-fees-btn') loadPendingFees();
-            if (btn.id === 'payment-entry-btn') loadStudentSelect();
-            if (btn.id === 'payment-history-btn') loadHistoryStudentSelect();
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Remove active class from all buttons
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
+            btn.classList.add('active');
+
+            // Scroll to the section on the single-page dashboard
+            const targetId = btn.id.replace('-btn', '');
+            const target = document.getElementById(targetId);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Load data for specific sections (keep data fresh)
+            if (targetId === 'student-list') loadStudents();
+            if (targetId === 'pending-fees') loadPendingFees();
+            if (targetId === 'payment-entry') loadStudentSelect();
+            if (targetId === 'payment-history') loadHistoryStudentSelect();
         });
     });
+
+    // Set dashboard button as active by default
+    document.getElementById('dashboard-btn').classList.add('active');
 }
 
 // Form listeners setup
