@@ -1,53 +1,76 @@
 // Firestore-based implementation (uses globals exported from index.html)
 
-// Navigation
-document.querySelectorAll('nav button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-        document.getElementById(btn.id.replace('-btn', '')).classList.add('active');
-        if (btn.id === 'student-list-btn') loadStudents();
-        if (btn.id === 'pending-fees-btn') loadPendingFees();
-        if (btn.id === 'payment-entry-btn') loadStudentSelect();
-        if (btn.id === 'payment-history-btn') loadHistoryStudentSelect();
+// Wait for Firestore to be ready
+async function initializeApp() {
+    let attempts = 0;
+    while (!window.db && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
+    
+    if (!window.db) {
+        console.error('Firebase failed to initialize!');
+        return;
+    }
+    
+    console.log('Firebase is ready! Starting app...');
+    setupNavigationListeners();
+    setupFormListeners();
+    setupFirebaseListeners();
+    loadDashboard();
+}
+
+// Navigation setup
+function setupNavigationListeners() {
+    document.querySelectorAll('nav button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(btn.id.replace('-btn', '')).classList.add('active');
+            if (btn.id === 'student-list-btn') loadStudents();
+            if (btn.id === 'pending-fees-btn') loadPendingFees();
+            if (btn.id === 'payment-entry-btn') loadStudentSelect();
+            if (btn.id === 'payment-history-btn') loadHistoryStudentSelect();
+        });
     });
-});
+}
 
-// Add Student
-document.getElementById('student-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const student = {
-        name: document.getElementById('student-name').value,
-        room: document.getElementById('room-no').value,
-        lunchType: document.getElementById('lunch-type').value
-    };
-    await addDoc(collection(db, 'students'), student);
-    this.reset();
-    alert('Student added!');
-    console.log('addStudent: added, requesting dashboard refresh');
-    loadDashboard();
-});
+// Form listeners setup
+function setupFormListeners() {
+    // Add Student
+    document.getElementById('student-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const student = {
+            name: document.getElementById('student-name').value,
+            room: document.getElementById('room-no').value,
+            lunchType: document.getElementById('lunch-type').value
+        };
+        await window.addDoc(window.collection(window.db, 'students'), student);
+        this.reset();
+        alert('Student added!');
+        console.log('Student added, dashboard will refresh via listener');
+    });
 
-// Add Payment
-document.getElementById('payment-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const payment = {
-        studentId: document.getElementById('student-select').value,
-        totalFees: parseFloat(document.getElementById('total-fees').value) || 0,
-        paidAmount: parseFloat(document.getElementById('paid-amount').value) || 0,
-        paymentMode: document.getElementById('payment-mode').value,
-        date: document.getElementById('payment-date').value,
-        balance: parseFloat(document.getElementById('balance').value) || 0
-    };
-    await addDoc(collection(db, 'payments'), payment);
-    this.reset();
-    alert('Payment added!');
-    console.log('addPayment: added, requesting dashboard refresh');
-    loadDashboard();
-});
+    // Add Payment
+    document.getElementById('payment-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const payment = {
+            studentId: document.getElementById('student-select').value,
+            totalFees: parseFloat(document.getElementById('total-fees').value) || 0,
+            paidAmount: parseFloat(document.getElementById('paid-amount').value) || 0,
+            paymentMode: document.getElementById('payment-mode').value,
+            date: document.getElementById('payment-date').value,
+            balance: parseFloat(document.getElementById('balance').value) || 0
+        };
+        await window.addDoc(window.collection(window.db, 'payments'), payment);
+        this.reset();
+        alert('Payment added!');
+        console.log('Payment added, dashboard will refresh via listener');
+    });
 
-// Auto calculate balance
-document.getElementById('total-fees').addEventListener('input', calculateBalance);
-document.getElementById('paid-amount').addEventListener('input', calculateBalance);
+    // Auto calculate balance
+    document.getElementById('total-fees').addEventListener('input', calculateBalance);
+    document.getElementById('paid-amount').addEventListener('input', calculateBalance);
+}
 
 function calculateBalance() {
     const total = parseFloat(document.getElementById('total-fees').value) || 0;
@@ -59,7 +82,7 @@ function calculateBalance() {
 async function loadStudents() {
     const ul = document.getElementById('student-ul');
     ul.innerHTML = '';
-    const snapshot = await getDocs(collection(db, 'students'));
+    const snapshot = await window.getDocs(window.collection(window.db, 'students'));
     snapshot.forEach(docSnap => {
         const student = docSnap.data();
         const li = document.createElement('li');
@@ -78,7 +101,7 @@ async function loadStudents() {
 async function loadStudentSelect() {
     const select = document.getElementById('student-select');
     select.innerHTML = '';
-    const snapshot = await getDocs(collection(db, 'students'));
+    const snapshot = await window.getDocs(window.collection(window.db, 'students'));
     snapshot.forEach(docSnap => {
         const student = docSnap.data();
         const option = document.createElement('option');
@@ -92,7 +115,7 @@ async function loadStudentSelect() {
 async function loadHistoryStudentSelect() {
     const select = document.getElementById('history-student-select');
     select.innerHTML = '<option value="">Select a student</option>';
-    const snapshot = await getDocs(collection(db, 'students'));
+    const snapshot = await window.getDocs(window.collection(window.db, 'students'));
     snapshot.forEach(docSnap => {
         const student = docSnap.data();
         const option = document.createElement('option');
@@ -112,8 +135,8 @@ async function loadPaymentHistory() {
     }
     const ul = document.getElementById('history-ul');
     ul.innerHTML = '';
-    const q = query(collection(db, 'payments'), where('studentId', '==', studentId));
-    const snapshot = await getDocs(q);
+    const q = window.query(window.collection(window.db, 'payments'), window.where('studentId', '==', studentId));
+    const snapshot = await window.getDocs(q);
     snapshot.forEach(docSnap => {
         const payment = docSnap.data();
         const li = document.createElement('li');
@@ -126,8 +149,8 @@ async function loadPaymentHistory() {
 async function loadPendingFees() {
     const ul = document.getElementById('pending-ul');
     ul.innerHTML = '';
-    const studentsSnap = await getDocs(collection(db, 'students'));
-    const paymentsSnap = await getDocs(collection(db, 'payments'));
+    const studentsSnap = await window.getDocs(window.collection(window.db, 'students'));
+    const paymentsSnap = await window.getDocs(window.collection(window.db, 'payments'));
     const payments = {};
     paymentsSnap.forEach(p => {
         const data = p.data();
@@ -149,11 +172,11 @@ async function loadPendingFees() {
 // Delete Student and their payments
 async function deleteStudent(studentId) {
     if (!confirm('Are you sure you want to delete this student and all their payments?')) return;
-    await deleteDoc(doc(db, 'students', studentId));
-    const q = query(collection(db, 'payments'), where('studentId', '==', studentId));
-    const snapshot = await getDocs(q);
+    await window.deleteDoc(window.doc(window.db, 'students', studentId));
+    const q = window.query(window.collection(window.db, 'payments'), window.where('studentId', '==', studentId));
+    const snapshot = await window.getDocs(q);
     const deletes = [];
-    snapshot.forEach(snap => deletes.push(deleteDoc(snap.ref)));
+    snapshot.forEach(snap => deletes.push(window.deleteDoc(snap.ref)));
     await Promise.all(deletes);
     loadStudents();
     loadDashboard();
@@ -163,10 +186,10 @@ async function deleteStudent(studentId) {
 // Load Dashboard
 async function loadDashboard() {
     try {
-        console.log('loadDashboard called');
-        const studentsSnap = await getDocs(collection(db, 'students'));
-        const paymentsSnap = await getDocs(collection(db, 'payments'));
-        console.log('Students count:', studentsSnap.size, 'Payments count:', paymentsSnap.size);
+        console.log('loadDashboard: refreshing...');
+        const studentsSnap = await window.getDocs(window.collection(window.db, 'students'));
+        const paymentsSnap = await window.getDocs(window.collection(window.db, 'payments'));
+        console.log('Dashboard: students =', studentsSnap.size, 'payments =', paymentsSnap.size);
         document.getElementById('total-students').textContent = studentsSnap.size;
         document.getElementById('total-payments').textContent = paymentsSnap.size;
         let totalPending = 0;
@@ -174,28 +197,30 @@ async function loadDashboard() {
             const balance = p.data().balance || 0;
             totalPending += balance;
         });
-        console.log('Total pending balance:', totalPending.toFixed(2));
+        console.log('Dashboard: pending balance =', totalPending.toFixed(2));
         document.getElementById('pending-balances').textContent = totalPending.toFixed(2);
     } catch (error) {
         console.error('Error loading dashboard:', error);
     }
 }
 
-// Real-time listeners
-onSnapshot(collection(db, 'students'), () => {
-    console.log('Students collection changed');
-    loadDashboard(); // Always refresh dashboard data
-    if (document.getElementById('student-list').classList.contains('active')) loadStudents();
-    if (document.getElementById('payment-entry').classList.contains('active')) loadStudentSelect();
-    if (document.getElementById('payment-history').classList.contains('active')) loadHistoryStudentSelect();
-});
+// Setup real-time listeners
+function setupFirebaseListeners() {
+    console.log('Setting up real-time listeners...');
+    window.onSnapshot(window.collection(window.db, 'students'), (snapshot) => {
+        console.log('Students changed:', snapshot.docs.length, 'docs');
+        loadDashboard();
+        if (document.getElementById('student-list').classList.contains('active')) loadStudents();
+        if (document.getElementById('payment-entry').classList.contains('active')) loadStudentSelect();
+        if (document.getElementById('payment-history').classList.contains('active')) loadHistoryStudentSelect();
+    });
 
-onSnapshot(collection(db, 'payments'), () => {
-    console.log('Payments collection changed');
-    loadDashboard(); // Always refresh dashboard data
-    if (document.getElementById('pending-fees').classList.contains('active')) loadPendingFees();
-});
+    window.onSnapshot(window.collection(window.db, 'payments'), (snapshot) => {
+        console.log('Payments changed:', snapshot.docs.length, 'docs');
+        loadDashboard();
+        if (document.getElementById('pending-fees').classList.contains('active')) loadPendingFees();
+    });
+}
 
-// Initial load
-console.log('Initializing app - loading dashboard');
-loadDashboard();
+// Start app when page loads
+document.addEventListener('DOMContentLoaded', initializeApp);
