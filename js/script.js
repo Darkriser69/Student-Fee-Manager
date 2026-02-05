@@ -151,15 +151,15 @@ async function loadDashboard() {
 }
 
 function displayStudents(searchQuery = '') {
-    const container = document.getElementById('students-container');
-    container.innerHTML = '';
+    const tbody = document.getElementById('students-tbody');
+    tbody.innerHTML = '';
 
     const filtered = allStudents.filter(student =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     if (filtered.length === 0) {
-        container.innerHTML = '<div class="no-data">No students found</div>';
+        tbody.innerHTML = '<tr><td colspan="8" class="no-data">No students found</td></tr>';
         return;
     }
 
@@ -167,40 +167,23 @@ function displayStudents(searchQuery = '') {
         const studentPayments = allPayments.filter(p => p.studentId === student.id);
         const totalBalance = studentPayments.reduce((sum, p) => sum + (p.balance || 0), 0);
         const totalPaid = studentPayments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+        
+        const lastPayment = studentPayments.length > 0 
+            ? new Date(studentPayments[studentPayments.length - 1].date).toLocaleDateString()
+            : 'No payment';
 
-        const card = document.createElement('div');
-        card.className = 'student-card';
-        card.innerHTML = `
-            <div class="student-header">
-                <div class="student-name">${student.name}</div>
-                <div class="student-basic">
-                    <div>Room: ${student.room}</div>
-                    <div>Phone: ${student.phone}</div>
-                    <div>Lunch: ${student.lunchType}</div>
-                </div>
-            </div>
-            <div class="student-body">
-                <div class="info-row">
-                    <span class="info-label">Total Paid</span>
-                    <span class="info-value">₹${totalPaid.toFixed(2)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Pending Balance</span>
-                    <span class="info-value balance-amount">₹${totalBalance.toFixed(2)}</span>
-                </div>
-                <div class="payment-history">
-                    <h4>Payment History</h4>
-                    ${studentPayments.length > 0 ? studentPayments.map(p => `
-                        <div class="payment-item">
-                            <div class="payment-item-date">${p.date}</div>
-                            <div>₹${p.paidAmount.toFixed(2)} via ${p.paymentMode}</div>
-                        </div>
-                    `).join('') : '<div style="color: #999; font-size: 0.85rem;">No payments yet</div>'}
-                </div>
-                <button class="delete-btn" onclick="deleteStudent('${student.id}')">Delete Student</button>
-            </div>
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${student.name}</td>
+            <td>${student.room}</td>
+            <td>${student.phone}</td>
+            <td>${student.lunchType}</td>
+            <td>₹${totalPaid.toFixed(2)}</td>
+            <td>₹${totalBalance.toFixed(2)}</td>
+            <td>${lastPayment}</td>
+            <td><button class="delete-btn" onclick="deleteStudent('${student.id}')">Delete</button></td>
         `;
-        container.appendChild(card);
+        tbody.appendChild(row);
     });
 }
 
