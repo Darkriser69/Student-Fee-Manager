@@ -1,6 +1,7 @@
-// Firestore-based implementation (uses globals exported from index.html)
+// Firebase-based Dashboard with Modals
+let allStudents = [];
+let allPayments = [];
 
-// Wait for Firestore to be ready
 async function initializeApp() {
     let attempts = 0;
     while (!window.db && attempts < 50) {
@@ -14,56 +15,63 @@ async function initializeApp() {
     }
     
     console.log('Firebase is ready! Starting app...');
-    setupNavigationListeners();
+    setupModals();
     setupFormListeners();
+    setupSearchListener();
     setupFirebaseListeners();
     loadDashboard();
 }
 
-// Navigation setup
-function setupNavigationListeners() {
-    document.querySelectorAll('nav button').forEach(btn => {
+function setupModals() {
+    const studentBtn = document.getElementById('add-student-modal-btn');
+    const paymentBtn = document.getElementById('add-payment-modal-btn');
+    const studentModal = document.getElementById('student-modal');
+    const paymentModal = document.getElementById('payment-modal');
+    const closeButtons = document.querySelectorAll('.close-btn');
+
+    studentBtn.addEventListener('click', () => {
+        studentModal.classList.add('show');
+    });
+
+    paymentBtn.addEventListener('click', () => {
+        paymentModal.classList.add('show');
+        loadStudentSelectForModal();
+    });
+
+    closeButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            // Remove active class from all buttons
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-            // Add active class to clicked button
-            btn.classList.add('active');
-
-            // Scroll to the section on the single-page dashboard
-            const targetId = btn.id.replace('-btn', '');
-            const target = document.getElementById(targetId);
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            // Load data for specific sections (keep data fresh)
-            if (targetId === 'student-list') loadStudents();
-            if (targetId === 'pending-fees') loadPendingFees();
-            if (targetId === 'payment-entry') loadStudentSelect();
-            if (targetId === 'payment-history') loadHistoryStudentSelect();
+            const modalId = e.target.getAttribute('data-modal');
+            document.getElementById(modalId).classList.remove('show');
         });
     });
 
-    // Set dashboard button as active by default
-    document.getElementById('dashboard-btn').classList.add('active');
+    window.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            e.target.classList.remove('show');
+        }
+    });
 }
 
-// Form listeners setup
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+}
+
 function setupFormListeners() {
-    // Add Student
     document.getElementById('student-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const student = {
             name: document.getElementById('student-name').value,
             room: document.getElementById('room-no').value,
+            phone: document.getElementById('phone-no').value,
             lunchType: document.getElementById('lunch-type').value
         };
         await window.addDoc(window.collection(window.db, 'students'), student);
         this.reset();
         alert('Student added!');
-        console.log('Student added, dashboard will refresh via listener');
+        closeModal('student-modal');
+        loadDashboard();
     });
 
-    // Add Payment
     document.getElementById('payment-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const payment = {
@@ -77,10 +85,10 @@ function setupFormListeners() {
         await window.addDoc(window.collection(window.db, 'payments'), payment);
         this.reset();
         alert('Payment added!');
-        console.log('Payment added, dashboard will refresh via listener');
+        closeModal('payment-modal');
+        loadDashboard();
     });
 
-    // Auto calculate balance
     document.getElementById('total-fees').addEventListener('input', calculateBalance);
     document.getElementById('paid-amount').addEventListener('input', calculateBalance);
 }
@@ -91,149 +99,137 @@ function calculateBalance() {
     document.getElementById('balance').value = (total - paid).toFixed(2);
 }
 
-// Load Students
-async function loadStudents() {
-    const ul = document.getElementById('student-ul');
-    ul.innerHTML = '';
-    const snapshot = await window.getDocs(window.collection(window.db, 'students'));
-    snapshot.forEach(docSnap => {
-        const student = docSnap.data();
-        const li = document.createElement('li');
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = `${student.name} - Room: ${student.room} - Lunch: ${student.lunchType}`;
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', () => deleteStudent(docSnap.id));
-        li.appendChild(nameSpan);
-        li.appendChild(deleteBtn);
-        ul.appendChild(li);
-    });
-}
-
-// Load Student Select
-async function loadStudentSelect() {
+function loadStudentSelectForModal() {
     const select = document.getElementById('student-select');
-    select.innerHTML = '';
-    const snapshot = await window.getDocs(window.collection(window.db, 'students'));
-    snapshot.forEach(docSnap => {
-        const student = docSnap.data();
+    select.innerHTML = '<option value="">Select Student</option>';
+    allStudents.forEach(student => {
         const option = document.createElement('option');
-        option.value = docSnap.id;
+        option.value = student.id;
         option.textContent = student.name;
         select.appendChild(option);
     });
 }
 
-// Load History Student Select
-async function loadHistoryStudentSelect() {
-    const select = document.getElementById('history-student-select');
-    select.innerHTML = '<option value="">Select a student</option>';
-    const snapshot = await window.getDocs(window.collection(window.db, 'students'));
-    snapshot.forEach(docSnap => {
-        const student = docSnap.data();
-        const option = document.createElement('option');
-        option.value = docSnap.id;
-        option.textContent = student.name;
-        select.appendChild(option);
-    });
-    select.addEventListener('change', loadPaymentHistory);
-}
-
-// Load Payment History
-async function loadPaymentHistory() {
-    const studentId = document.getElementById('history-student-select').value;
-    if (!studentId) {
-        document.getElementById('history-ul').innerHTML = '';
-        return;
-    }
-    const ul = document.getElementById('history-ul');
-    ul.innerHTML = '';
-    const q = window.query(window.collection(window.db, 'payments'), window.where('studentId', '==', studentId));
-    const snapshot = await window.getDocs(q);
-    snapshot.forEach(docSnap => {
-        const payment = docSnap.data();
-        const li = document.createElement('li');
-        li.textContent = `Date: ${payment.date} | Total Fees: ₹${payment.totalFees.toFixed(2)} | Paid: ₹${payment.paidAmount.toFixed(2)} | Balance: ₹${payment.balance.toFixed(2)} | Mode: ${payment.paymentMode}`;
-        ul.appendChild(li);
+function setupSearchListener() {
+    const searchBox = document.getElementById('search-box');
+    searchBox.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        displayStudents(query);
     });
 }
 
-// Load Pending Fees
-async function loadPendingFees() {
-    const ul = document.getElementById('pending-ul');
-    ul.innerHTML = '';
-    const studentsSnap = await window.getDocs(window.collection(window.db, 'students'));
-    const paymentsSnap = await window.getDocs(window.collection(window.db, 'payments'));
-    const payments = {};
-    paymentsSnap.forEach(p => {
-        const data = p.data();
-        if (!payments[data.studentId]) payments[data.studentId] = [];
-        payments[data.studentId].push(data);
-    });
-    studentsSnap.forEach(s => {
-        const student = s.data();
-        const studentPayments = payments[s.id] || [];
-        const totalBalance = studentPayments.reduce((sum, p) => sum + p.balance, 0);
-        if (totalBalance > 0) {
-            const li = document.createElement('li');
-            li.textContent = `${student.name} - Pending: ₹${totalBalance.toFixed(2)}`;
-            ul.appendChild(li);
-        }
-    });
-}
-
-// Delete Student and their payments
-async function deleteStudent(studentId) {
-    if (!confirm('Are you sure you want to delete this student and all their payments?')) return;
-    await window.deleteDoc(window.doc(window.db, 'students', studentId));
-    const q = window.query(window.collection(window.db, 'payments'), window.where('studentId', '==', studentId));
-    const snapshot = await window.getDocs(q);
-    const deletes = [];
-    snapshot.forEach(snap => deletes.push(window.deleteDoc(snap.ref)));
-    await Promise.all(deletes);
-    loadStudents();
-    loadDashboard();
-    loadPendingFees();
-}
-
-// Load Dashboard
 async function loadDashboard() {
     try {
         console.log('loadDashboard: refreshing...');
         const studentsSnap = await window.getDocs(window.collection(window.db, 'students'));
         const paymentsSnap = await window.getDocs(window.collection(window.db, 'payments'));
-        console.log('Dashboard: students =', studentsSnap.size, 'payments =', paymentsSnap.size);
-        document.getElementById('total-students').textContent = studentsSnap.size;
-        document.getElementById('total-payments').textContent = paymentsSnap.size;
-        let totalPending = 0;
-        paymentsSnap.forEach(p => {
-            const balance = p.data().balance || 0;
-            totalPending += balance;
+
+        allStudents = [];
+        allPayments = [];
+
+        studentsSnap.forEach(docSnap => {
+            allStudents.push({ id: docSnap.id, ...docSnap.data() });
         });
-        console.log('Dashboard: pending balance =', totalPending.toFixed(2));
+
+        paymentsSnap.forEach(docSnap => {
+            allPayments.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        document.getElementById('total-students').textContent = allStudents.length;
+        document.getElementById('total-payments').textContent = allPayments.length;
+
+        let totalPending = 0;
+        allPayments.forEach(p => {
+            totalPending += (p.balance || 0);
+        });
         document.getElementById('pending-balances').textContent = totalPending.toFixed(2);
+
+        displayStudents('');
     } catch (error) {
         console.error('Error loading dashboard:', error);
     }
 }
 
-// Setup real-time listeners
-function setupFirebaseListeners() {
-    console.log('Setting up real-time listeners...');
-    window.onSnapshot(window.collection(window.db, 'students'), (snapshot) => {
-        console.log('Students changed:', snapshot.docs.length, 'docs');
-        loadDashboard();
-        if (document.getElementById('student-list').classList.contains('active')) loadStudents();
-        if (document.getElementById('payment-entry').classList.contains('active')) loadStudentSelect();
-        if (document.getElementById('payment-history').classList.contains('active')) loadHistoryStudentSelect();
-    });
+function displayStudents(searchQuery = '') {
+    const container = document.getElementById('students-container');
+    container.innerHTML = '';
 
-    window.onSnapshot(window.collection(window.db, 'payments'), (snapshot) => {
-        console.log('Payments changed:', snapshot.docs.length, 'docs');
-        loadDashboard();
-        if (document.getElementById('pending-fees').classList.contains('active')) loadPendingFees();
+    const filtered = allStudents.filter(student =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="no-data">No students found</div>';
+        return;
+    }
+
+    filtered.forEach(student => {
+        const studentPayments = allPayments.filter(p => p.studentId === student.id);
+        const totalBalance = studentPayments.reduce((sum, p) => sum + (p.balance || 0), 0);
+        const totalPaid = studentPayments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+
+        const card = document.createElement('div');
+        card.className = 'student-card';
+        card.innerHTML = `
+            <div class="student-header">
+                <div class="student-name">${student.name}</div>
+                <div class="student-basic">
+                    <div>Room: ${student.room}</div>
+                    <div>Phone: ${student.phone}</div>
+                    <div>Lunch: ${student.lunchType}</div>
+                </div>
+            </div>
+            <div class="student-body">
+                <div class="info-row">
+                    <span class="info-label">Total Paid</span>
+                    <span class="info-value">₹${totalPaid.toFixed(2)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Pending Balance</span>
+                    <span class="info-value balance-amount">₹${totalBalance.toFixed(2)}</span>
+                </div>
+                <div class="payment-history">
+                    <h4>Payment History</h4>
+                    ${studentPayments.length > 0 ? studentPayments.map(p => `
+                        <div class="payment-item">
+                            <div class="payment-item-date">${p.date}</div>
+                            <div>₹${p.paidAmount.toFixed(2)} via ${p.paymentMode}</div>
+                        </div>
+                    `).join('') : '<div style="color: #999; font-size: 0.85rem;">No payments yet</div>'}
+                </div>
+                <button class="delete-btn" onclick="deleteStudent('${student.id}')">Delete Student</button>
+            </div>
+        `;
+        container.appendChild(card);
     });
 }
 
-// Start app when page loads
+async function deleteStudent(studentId) {
+    if (!confirm('Are you sure you want to delete this student and all their payments?')) return;
+    
+    try {
+        await window.deleteDoc(window.doc(window.db, 'students', studentId));
+        const paymentsToDelete = allPayments.filter(p => p.studentId === studentId);
+        for (let payment of paymentsToDelete) {
+            await window.deleteDoc(window.doc(window.db, 'payments', payment.id));
+        }
+        loadDashboard();
+    } catch (error) {
+        console.error('Error deleting student:', error);
+    }
+}
+
+function setupFirebaseListeners() {
+    console.log('Setting up real-time listeners...');
+    window.onSnapshot(window.collection(window.db, 'students'), () => {
+        console.log('Students changed');
+        loadDashboard();
+    });
+
+    window.onSnapshot(window.collection(window.db, 'payments'), () => {
+        console.log('Payments changed');
+        loadDashboard();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', initializeApp);
