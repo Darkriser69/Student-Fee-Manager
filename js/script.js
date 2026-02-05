@@ -162,27 +162,40 @@ async function deleteStudent(studentId) {
 
 // Load Dashboard
 async function loadDashboard() {
-    const studentsSnap = await getDocs(collection(db, 'students'));
-    const paymentsSnap = await getDocs(collection(db, 'payments'));
-    document.getElementById('total-students').textContent = studentsSnap.size;
-    document.getElementById('total-payments').textContent = paymentsSnap.size;
-    let totalPending = 0;
-    paymentsSnap.forEach(p => totalPending += p.data().balance);
-    document.getElementById('pending-balances').textContent = totalPending.toFixed(2);
+    try {
+        console.log('loadDashboard called');
+        const studentsSnap = await getDocs(collection(db, 'students'));
+        const paymentsSnap = await getDocs(collection(db, 'payments'));
+        console.log('Students count:', studentsSnap.size, 'Payments count:', paymentsSnap.size);
+        document.getElementById('total-students').textContent = studentsSnap.size;
+        document.getElementById('total-payments').textContent = paymentsSnap.size;
+        let totalPending = 0;
+        paymentsSnap.forEach(p => {
+            const balance = p.data().balance || 0;
+            totalPending += balance;
+        });
+        console.log('Total pending balance:', totalPending.toFixed(2));
+        document.getElementById('pending-balances').textContent = totalPending.toFixed(2);
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+    }
 }
 
 // Real-time listeners
 onSnapshot(collection(db, 'students'), () => {
-    if (document.getElementById('dashboard').classList.contains('active')) loadDashboard();
+    console.log('Students collection changed');
+    loadDashboard(); // Always refresh dashboard data
     if (document.getElementById('student-list').classList.contains('active')) loadStudents();
     if (document.getElementById('payment-entry').classList.contains('active')) loadStudentSelect();
     if (document.getElementById('payment-history').classList.contains('active')) loadHistoryStudentSelect();
 });
 
 onSnapshot(collection(db, 'payments'), () => {
-    if (document.getElementById('dashboard').classList.contains('active')) loadDashboard();
+    console.log('Payments collection changed');
+    loadDashboard(); // Always refresh dashboard data
     if (document.getElementById('pending-fees').classList.contains('active')) loadPendingFees();
 });
 
 // Initial load
+console.log('Initializing app - loading dashboard');
 loadDashboard();
