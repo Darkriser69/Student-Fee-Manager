@@ -6,16 +6,17 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #f5f7fa;
     min-height: 100vh;
     color: #333;
 }
 
 header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: white;
+    color: #2c3e50;
     padding: 2rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-bottom: 3px solid #3498db;
 }
 
 header h1 {
@@ -33,9 +34,9 @@ nav {
 
 nav button {
     padding: 0.75rem 1.5rem;
-    background-color: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 2px solid white;
+    background-color: #e8f4f8;
+    color: #3498db;
+    border: 2px solid #3498db;
     cursor: pointer;
     border-radius: 25px;
     font-size: 0.95rem;
@@ -44,16 +45,16 @@ nav button {
 }
 
 nav button:hover {
-    background-color: white;
-    color: #667eea;
+    background-color: #3498db;
+    color: white;
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
 }
 
 nav button.active {
-    background-color: white;
-    color: #667eea;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    background-color: #3498db;
+    color: white;
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
 }
 
 main {
@@ -81,7 +82,7 @@ main {
 }
 
 .screen h2 {
-    color: white;
+    color: #2c3e50;
     margin-bottom: 2rem;
     font-size: 1.8rem;
 }
@@ -115,15 +116,15 @@ form input, form select {
 
 form input:focus, form select:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 form button {
     width: 100%;
     margin-top: 1.5rem;
     padding: 0.9rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #3498db;
     color: white;
     border: none;
     cursor: pointer;
@@ -135,35 +136,45 @@ form button {
 
 form button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+    background: #2980b9;
 }
 
 #stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
 }
 
 #stats div {
     background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     text-align: center;
     transition: transform 0.3s;
+    border-left: 4px solid #3498db;
 }
 
 #stats div:hover {
-    transform: translateY(-5px);
+    transform: translateY(-3px);
 }
 
 #stats div span {
     display: block;
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
-    color: #667eea;
-    margin-top: 0.5rem;
+    color: #3498db;
+    margin-top: 0.3rem;
+}
+
+#stats div .stat-label {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 ul {
@@ -224,8 +235,8 @@ select#history-student-select {
 
 select#history-student-select:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 /* Responsive Design */
@@ -278,8 +289,8 @@ select#history-student-select:focus {
 .header-btn {
     padding: 0.8rem 1.5rem;
     background-color: white;
-    color: #667eea;
-    border: 2px solid white;
+    color: #3498db;
+    border: 2px solid #3498db;
     cursor: pointer;
     border-radius: 8px;
     font-size: 0.95rem;
@@ -288,9 +299,10 @@ select#history-student-select:focus {
 }
 
 .header-btn:hover {
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: #3498db;
+    color: white;
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
 }
 
 .header-btn:active {
@@ -339,7 +351,7 @@ select#history-student-select:focus {
 }
 
 .modal-content h3 {
-    color: #667eea;
+    color: #3498db;
     margin-bottom: 1.5rem;
     font-size: 1.3rem;
 }
@@ -382,13 +394,13 @@ select#history-student-select:focus {
 .modal-content form input:focus,
 .modal-content form select:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .modal-content form button {
     padding: 0.9rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #3498db;
     color: white;
     border: none;
     cursor: pointer;
@@ -401,5 +413,6 @@ select#history-student-select:focus {
 
 .modal-content form button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+    background: #2980b9;
 }
