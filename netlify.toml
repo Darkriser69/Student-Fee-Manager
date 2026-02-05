@@ -1,0 +1,8 @@
+[build]
+  # Run the generator to create config.js from Netlify env vars, then proceed with any build steps
+  command = "node build-config.js"
+  publish = "."
+
+[context]
+  # Ensure Netlify serves the repository root (adjust if your site publishes from a subfolder)
+  framework = "static"
