@@ -11,76 +11,87 @@
 <body>
     <header>
         <h1>Student Fee Manager</h1>
-        <nav>
-            <button id="dashboard-btn">Dashboard</button>
-            <button id="add-student-btn">Add Student</button>
-            <button id="payment-entry-btn">Payment Entry</button>
-            <button id="student-list-btn">Student List</button>
-            <button id="pending-fees-btn">Pending Fees</button>
-            <button id="payment-history-btn">Payment History</button>
-        </nav>
+        <div class="header-buttons">
+            <button id="add-student-modal-btn" class="header-btn">+ Add Student</button>
+            <button id="add-payment-modal-btn" class="header-btn">+ Add Payment</button>
+        </div>
     </header>
     <main>
-        <section id="dashboard" class="screen active">
-            <h2>Dashboard</h2>
-            <p>Welcome to the Student Fee Manager. Select an option from the menu.</p>
+        <!-- Dashboard Stats -->
+        <section id="dashboard-stats" class="stats-section">
             <div id="stats">
-                <div>Total Students: <span id="total-students">0</span></div>
-                <div>Total Payments: <span id="total-payments">0</span></div>
-                <div>Pending Balances: ₹<span id="pending-balances">0</span></div>
+                <div>
+                    <span class="stat-label">Total Students</span>
+                    <span class="stat-value" id="total-students">0</span>
+                </div>
+                <div>
+                    <span class="stat-label">Total Payments</span>
+                    <span class="stat-value" id="total-payments">0</span>
+                </div>
+                <div>
+                    <span class="stat-label">Pending Balance</span>
+                    <span class="stat-value">₹<span id="pending-balances">0</span></span>
+                </div>
             </div>
         </section>
-        <section id="add-student" class="screen">
-            <h2>Add Student</h2>
+
+        <!-- Forms Section (now in modals) -->
+        <section id="forms-section" class="forms-section" style="display:none;">
+        </section>
+
+        <!-- Search Section -->
+        <section id="search-section" class="search-section">
+            <input type="text" id="search-box" placeholder="Search students by name...">
+        </section>
+
+        <!-- Students Data Section -->
+        <section id="students-data" class="students-section">
+            <h2>Students Information</h2>
+            <div id="students-container" class="students-container"></div>
+        </section>
+    </main>
+
+    <!-- Add Student Modal -->
+    <div id="student-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" data-modal="student-modal">&times;</span>
+            <h3>Add Student</h3>
             <form id="student-form">
-                <label for="student-name">Student Name:</label>
-                <input type="text" id="student-name" required>
-                <label for="room-no">Room No:</label>
-                <input type="text" id="room-no" required>
-                <label for="lunch-type">Lunch Type:</label>
+                <input type="text" id="student-name" placeholder="Student Name" required>
+                <input type="text" id="room-no" placeholder="Room No" required>
+                <input type="tel" id="phone-no" placeholder="Phone Number" required>
                 <select id="lunch-type" required>
+                    <option value="">Select Lunch Type</option>
                     <option value="One Time">One Time</option>
                     <option value="Two Time">Two Time</option>
                 </select>
                 <button type="submit">Add Student</button>
             </form>
-        </section>
-        <section id="payment-entry" class="screen">
-            <h2>Payment Entry</h2>
+        </div>
+    </div>
+
+    <!-- Add Payment Modal -->
+    <div id="payment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" data-modal="payment-modal">&times;</span>
+            <h3>Add Payment</h3>
             <form id="payment-form">
-                <label for="student-select">Select Student:</label>
-                <select id="student-select" required></select>
-                <label for="total-fees">Total Fees:</label>
-                <input type="number" id="total-fees" step="0.01" required>
-                <label for="paid-amount">Paid Amount:</label>
-                <input type="number" id="paid-amount" step="0.01" required>
-                <label for="payment-mode">Payment Mode:</label>
+                <select id="student-select" required>
+                    <option value="">Select Student</option>
+                </select>
+                <input type="number" id="total-fees" placeholder="Total Fees" step="0.01" required>
+                <input type="number" id="paid-amount" placeholder="Paid Amount" step="0.01" required>
                 <select id="payment-mode" required>
+                    <option value="">Select Payment Mode</option>
                     <option value="Cash">Cash</option>
                     <option value="Online">Online</option>
                 </select>
-                <label for="payment-date">Date:</label>
                 <input type="date" id="payment-date" required>
-                <label for="balance">Balance:</label>
-                <input type="number" id="balance" step="0.01" readonly>
+                <input type="number" id="balance" placeholder="Balance" step="0.01" readonly>
                 <button type="submit">Add Payment</button>
             </form>
-        </section>
-        <section id="student-list" class="screen">
-            <h2>Student List</h2>
-            <ul id="student-ul"></ul>
-        </section>
-        <section id="pending-fees" class="screen">
-            <h2>Pending Fees</h2>
-            <ul id="pending-ul"></ul>
-        </section>
-        <section id="payment-history" class="screen">
-            <h2>Payment History</h2>
-            <label for="history-student-select">Select Student:</label>
-            <select id="history-student-select"></select>
-            <ul id="history-ul"></ul>
-        </section>
-    </main>
+        </div>
+    </div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
