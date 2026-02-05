@@ -97,7 +97,13 @@ function loadStudents() {
         ul.innerHTML = '';
         students.forEach(student => {
             const li = document.createElement('li');
-            li.textContent = `${student.name} - Room: ${student.room} - Lunch: ${student.lunchType}`;
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = `${student.name} - Room: ${student.room} - Lunch: ${student.lunchType}`;
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.addEventListener('click', () => deleteStudent(student.id));
+            li.appendChild(nameSpan);
+            li.appendChild(deleteBtn);
             ul.appendChild(li);
         });
     };
@@ -143,17 +149,25 @@ function loadPendingFees() {
     };
 }
 
-function loadDashboard() {
-    const transaction = db.transaction(['students', 'payments'], 'readonly');
-    const studentStore = transaction.objectStore('students');
-    const paymentStore = transaction.objectStore('payments');
-    const studentRequest = studentStore.count();
-    const paymentRequest = paymentStore.getAll();
-    transaction.oncomplete = function() {
-        document.getElementById('total-students').textContent = studentRequest.result;
-        const payments = paymentRequest.result;
-        document.getElementById('total-payments').textContent = payments.length;
-        const totalPending = payments.reduce((sum, p) => sum + p.balance, 0);
-        document.getElementById('pending-balances').textContent = totalPending.toFixed(2);
-    };
+function deleteStudent(studentId) {
+    if (confirm('Are you sure you want to delete this student and all their payments?')) {
+        const transaction = db.transaction(['students', 'payments'], 'readwrite');
+        const studentStore = transaction.objectStore('students');
+        const paymentStore = transaction.objectStore('payments');
+        studentStore.delete(studentId);
+        const paymentRequest = paymentStore.getAll();
+        paymentRequest.onsuccess = function() {
+            const payments = paymentRequest.result;
+            payments.forEach(payment => {
+                if (payment.studentId === studentId) {
+                    paymentStore.delete(payment.id);
+                }
+            });
+        };
+        transaction.oncomplete = () => {
+            loadStudents();
+            loadDashboard();
+            loadPendingFees();
+        };
+    }
 }
