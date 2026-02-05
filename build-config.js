@@ -1,4 +1,5 @@
 const fs = require('fs');
+require('dotenv').config();
 
 const config = {
   apiKey: process.env.FIREBASE_API_KEY || '',
@@ -14,4 +15,4 @@ const content = 'export const firebaseConfig = ' + JSON.stringify(config, null, 
 ';
 
 fs.writeFileSync('config.js', content, { encoding: 'utf8' });
-console.log('Wrote config.js from environment variables');
+console.log('Wrote config.js from .env file');
