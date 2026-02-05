@@ -23,6 +23,8 @@ document.getElementById('student-form').addEventListener('submit', async functio
     await addDoc(collection(db, 'students'), student);
     this.reset();
     alert('Student added!');
+    console.log('addStudent: added, requesting dashboard refresh');
+    loadDashboard();
 });
 
 // Add Payment
@@ -39,6 +41,8 @@ document.getElementById('payment-form').addEventListener('submit', async functio
     await addDoc(collection(db, 'payments'), payment);
     this.reset();
     alert('Payment added!');
+    console.log('addPayment: added, requesting dashboard refresh');
+    loadDashboard();
 });
 
 // Auto calculate balance
