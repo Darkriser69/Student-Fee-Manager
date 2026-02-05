@@ -11,8 +11,7 @@ const config = {
   measurementId: process.env.FIREBASE_MEASUREMENT_ID || ''
 };
 
-const content = 'export const firebaseConfig = ' + JSON.stringify(config, null, 2) + ';
-';
+const content = 'export const firebaseConfig = ' + JSON.stringify(config, null, 2) + ';\n';
 
 fs.writeFileSync('config.js', content, { encoding: 'utf8' });
 console.log('Wrote config.js from .env file');
