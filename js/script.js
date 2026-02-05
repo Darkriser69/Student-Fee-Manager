@@ -30,6 +30,7 @@ document.querySelectorAll('nav button').forEach(btn => {
         if (btn.id === 'student-list-btn') loadStudents();
         if (btn.id === 'pending-fees-btn') loadPendingFees();
         if (btn.id === 'payment-entry-btn') loadStudentSelect();
+        if (btn.id === 'payment-history-btn') loadHistoryStudentSelect();
     });
 });
 
@@ -170,4 +171,43 @@ function deleteStudent(studentId) {
             loadPendingFees();
         };
     }
+}
+
+function loadHistoryStudentSelect() {
+    const transaction = db.transaction(['students'], 'readonly');
+    const store = transaction.objectStore('students');
+    const request = store.getAll();
+    request.onsuccess = function() {
+        const students = request.result;
+        const select = document.getElementById('history-student-select');
+        select.innerHTML = '<option value="">Select a student</option>';
+        students.forEach(student => {
+            const option = document.createElement('option');
+            option.value = student.id;
+            option.textContent = student.name;
+            select.appendChild(option);
+        });
+        select.addEventListener('change', loadPaymentHistory);
+    };
+}
+
+function loadPaymentHistory() {
+    const studentId = parseInt(document.getElementById('history-student-select').value);
+    if (!studentId) {
+        document.getElementById('history-ul').innerHTML = '';
+        return;
+    }
+    const transaction = db.transaction(['payments'], 'readonly');
+    const store = transaction.objectStore('payments');
+    const request = store.getAll();
+    request.onsuccess = function() {
+        const payments = request.result.filter(p => p.studentId === studentId);
+        const ul = document.getElementById('history-ul');
+        ul.innerHTML = '';
+        payments.forEach(payment => {
+            const li = document.createElement('li');
+            li.textContent = `Date: ${payment.date} | Total Fees: ₹${payment.totalFees.toFixed(2)} | Paid: ₹${payment.paidAmount.toFixed(2)} | Balance: ₹${payment.balance.toFixed(2)} | Mode: ${payment.paymentMode}`;
+            ul.appendChild(li);
+        });
+    };
 }
